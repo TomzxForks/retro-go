@@ -26,27 +26,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build app
+    - name: Build app and export binary
       uses: docker/build-push-action@v6
       with:
         context: .
-        tags: retro-go:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        load: true
         build-args: |
           APPS=${{ matrix.app }}
-
-    - name: Extract app binary
-      run: |
-        mkdir -p build
-        docker run --rm -v $(pwd)/build:/build retro-go:latest sh -c "cp /app/${{ matrix.app }}/build/${{ matrix.app }}.bin /build/"
+        outputs: |
+          /app/${{ matrix.app }}/build=./build
 
     - name: Upload app binary
       uses: actions/upload-artifact@v4
       with:
         name: app-${{ matrix.app }}
-        path: build/*.bin
+        path: build/${{ matrix.app }}/*.bin
 
   pack:
     needs: build
@@ -77,17 +70,10 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        tags: retro-go:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        load: true
         build-args: |
           APPS=none
-
-    - name: Extract firmware from docker image
-      run: |
-        mkdir -p output
-        docker run --rm -v $(pwd)/output:/output retro-go:latest sh -c "cp /app/*.fw /output/"
+        outputs: |
+          /app/*.fw=./output
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
